@@ -1,14 +1,50 @@
 import React, { useRef, useState } from 'react';
+import Image from 'next/image';
 
 const NEON_PINK = '#ff3ec8';
 const NEON_PURPLE = '#ff5fff';
 const NEON_BG = 'linear-gradient(10deg, #1a0033 0%,rgb(188, 151, 226) 100%)';
 
 const items = [
-  { id: 1, title: '获得奖学金', time: '2025-06-01', desc: '在校获得国家奖学金' },
-  { id: 2, title: '坚持早起', time: '2025-06-05', desc: '连续30天早起打卡' },
-  { id: 3, title: '完成马拉松', time: '2025-06-10', desc: '人生首次全马完赛' },
-  { id: 4, title: '生日聚会', time: '2025-06-20', desc: '与朋友共度生日' },
+  {
+    id: 1,
+    title: '获得奖学金',
+    content: '在校获得国家奖学金',
+    time: '2025-06-01',
+    tag: '成就',
+    media: [
+      { type: 'image', url: '/media/image.png' },
+      { type: 'audio', url: '/media/Daylight.mp3' }
+    ]
+  },
+  {
+    id: 2,
+    title: '坚持早起',
+    content: 30,
+    time: '2025-06-05',
+    tag: '习惯',
+    media: []
+  },
+  {
+    id: 3,
+    title: '完成马拉松',
+    content: '人生首次全马完赛',
+    time: '2025-06-10',
+    tag: '里程碑',
+    media: [
+      { type: 'video', url: '/media/mylivewallpapers-com-Goku-Rising-4K.mp4' }
+    ]
+  },
+  {
+    id: 4,
+    title: '生日聚会',
+    content: '与朋友共度生日',
+    time: '2025-06-20',
+    tag: '重要时刻',
+    media: [
+      { type: 'image', url: '/media/image.png' }
+    ]
+  },
 ];
 
 const TIMELINE_ANGLE = -15; // 斜向角度
@@ -19,9 +55,10 @@ const VIEWPORT_CENTER = 700; // 视口中心点(px)
 const NODE_GAP = 300; // 节点间距（沿主线方向）
 const VISIBLE_NODE_COUNT = 15; // 渲染视口附近的节点数
 
-export default function NeonTimeline() {
+export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean }) {
   const [offset, setOffset] = useState(0); // 沿主线方向的偏移
   const [dragging, setDragging] = useState(false);
+  const [selectedNode, setSelectedNode] = useState<number | null>(null);
   const dragStart = useRef(0);
   const offsetStart = useRef(0);
 
@@ -60,6 +97,14 @@ export default function NeonTimeline() {
   // 渲染视口附近的节点（理论无限）
   const centerIdx = Math.round(offset / NODE_GAP);
   const nodeIndices = Array.from({ length: VISIBLE_NODE_COUNT }, (_, i) => i + centerIdx - Math.floor(VISIBLE_NODE_COUNT / 2));
+
+  // 点击节点时自动居中并显示详情
+  const handleNodeClick = (nodeIdx: number, x: number) => {
+    // 计算需要的 offset 使节点居中
+    const targetOffset = nodeIdx * NODE_GAP - (VIEWPORT_CENTER - lineStart.x) / Math.cos((TIMELINE_ANGLE * Math.PI) / 180);
+    setOffset(targetOffset);
+    setSelectedNode(nodeIdx);
+  };
 
   return (
     <div style={{ minHeight: '100vh', background: NEON_BG, position: 'relative', overflow: 'hidden' }}>
@@ -105,6 +150,8 @@ export default function NeonTimeline() {
           const item = items[((nodeIdx % items.length) + items.length) % items.length];
           // 三角颜色
           const TRIANGLE_COLOR = 'rgb(246,209,251)';
+          // 圆圈颜色
+          const CIRCLE_COLOR = 'rgb(245, 192, 212)';
           return (
             <div
               key={nodeIdx}
@@ -122,7 +169,7 @@ export default function NeonTimeline() {
               title={item.title}
               onClick={e => {
                 e.stopPropagation();
-                alert(`${item.title}\n${item.time}\n${item.desc}`);
+                handleNodeClick(nodeIdx, x);
               }}
             >
               {/* 时间日期（上方） */}
@@ -146,7 +193,7 @@ export default function NeonTimeline() {
                   strokeWidth="5"
                   style={{ transition: 'filter 0.2s, transform 0.2s' }}
                 />
-                <circle cx="30" cy="36" r="7" fill={TRIANGLE_COLOR} opacity="0.5" />
+                <circle cx="30" cy="36" r="7" fill={CIRCLE_COLOR} opacity="0.5" />
               </svg>
               {/* 标题（下方） */}
               <div style={{
@@ -164,6 +211,54 @@ export default function NeonTimeline() {
             </div>
           );
         })}
+        {/* 详情展示区域 */}
+        {selectedNode !== null && (() => {
+          const idx = selectedNode;
+          const item = items[((idx % items.length) + items.length) % items.length];
+          return (
+            <div style={{
+              position: 'absolute',
+              left: '50%',
+              top: 120,
+              transform: 'translateX(-50%)',
+              minWidth: 420,
+              maxWidth: 600,
+              background: 'rgba(30,20,60,0.98)',
+              border: '2px solid #ff3ec8',
+              borderRadius: 18,
+              boxShadow: '0 0 32px #ff3ec8',
+              color: '#fff',
+              zIndex: 99,
+              padding: 32,
+              textAlign: 'center',
+              fontSize: 18,
+            }}>
+              <div style={{ fontWeight: 700, fontSize: 28, marginBottom: 8 }}>{item.title}</div>
+              <div style={{ color: '#ffb3fa', fontWeight: 500, marginBottom: 8 }}>{item.time} <span style={{ marginLeft: 12, color: '#7f5fff' }}>{item.tag}</span></div>
+              <div style={{ marginBottom: 16 }}>{typeof item.content === 'number' ? item.content : (item.content || '-')}</div>
+              {/* 多媒体内容展示 */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center', marginBottom: 8 }}>
+                {item.media && item.media.map((media, idx) => {
+                  if (media.type === 'image') return <Image key={idx} src={media.url} alt="img" width={320} height={200} style={{ maxWidth: 320, borderRadius: 8, boxShadow: '0 0 12px #ff3ec8', height: 'auto' }} />;
+                  if (media.type === 'audio') return <audio key={idx} src={media.url} controls style={{ width: 320 }} />;
+                  if (media.type === 'video') return <video key={idx} src={media.url} controls style={{ width: 320, borderRadius: 8, boxShadow: '0 0 12px #ff3ec8' }} />;
+                  return null;
+                })}
+              </div>
+              <button style={{ marginTop: 12, background: '#ff3ec8', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 32px', fontWeight: 700, fontSize: 18, boxShadow: '0 0 8px #ff3ec8' }} onClick={() => setSelectedNode(null)}>关闭</button>
+            </div>
+          );
+        })()}
+        {isAdmin && (
+          <div style={{ position: 'absolute', left: 40, bottom: 40, zIndex: 10, display: 'flex', gap: 16 }}>
+            <button style={{ background: '#ff3ec8', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 20px', fontWeight: 700, fontSize: 18, boxShadow: '0 0 16px #ff3ec8' }} onClick={() => alert('新增节点功能开发中')}>新增节点</button>
+            <button style={{ background: '#7f5fff', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 20px', fontWeight: 700, fontSize: 18, boxShadow: '0 0 16px #7f5fff' }} onClick={() => alert('请点击节点进行编辑/删除')}>编辑节点</button>
+            <button style={{ background: '#222', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 20px', fontWeight: 700, fontSize: 18, boxShadow: '0 0 16px #888' }} onClick={() => {
+              window.localStorage.removeItem('isAdmin');
+              window.location.reload();
+            }}>退出管理员模式</button>
+          </div>
+        )}
       </div>
     </div>
   );
