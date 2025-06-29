@@ -4,16 +4,16 @@ export interface INode extends Document {
   title: string;
   content: string;
   date: Date;
-  type: 'text' | 'number' | 'image' | 'audio' | 'video';
+  tag: string;
   mediaUrl?: string;
-  extra?: Record<string, any>;
+  extra?: Record<string, unknown>;
 }
 
 const NodeSchema: Schema = new Schema({
   title: { type: String, required: true },
   content: { type: String, required: true },
   date: { type: Date, required: true },
-  type: { type: String, enum: ['text', 'number', 'image', 'audio', 'video'], required: true },
+  tag: { type: String },
   mediaUrl: { type: String },
   extra: { type: Schema.Types.Mixed },
 });
