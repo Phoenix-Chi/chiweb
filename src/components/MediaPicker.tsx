@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Button } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 
@@ -14,6 +14,7 @@ export default function MediaPicker({
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [tempFiles, setTempFiles] = useState<string[]>([]);
+  const [previewFiles, setPreviewFiles] = useState<Array<{url: string; type: string}>>([]);
 
   const handleUpload = useCallback(async (files: FileList) => {
     setUploading(true);
@@ -26,18 +27,19 @@ export default function MediaPicker({
       const file = files[i];
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('isTemp', 'true');
 
       try {
         const response = await fetch('/api/media', {
           method: 'POST',
           body: formData,
         });
+        const data = await response.json();
+        setTempFiles(prev => [...prev, data.fileId]);
 
         if (!response.ok) {
           throw new Error(`上传失败: ${response.statusText}`);
         }
-
-        const data = await response.json();
         results.push(data);
         setProgress(Math.round(((i + 1) / totalFiles) * 100));
       } catch (error) {
@@ -49,11 +51,47 @@ export default function MediaPicker({
 
     setUploading(false);
     if (results.length > 0) {
+      setPreviewFiles(results);
       onSelect(results);
-    } else {
-      // message.error('没有文件上传成功');
     }
   }, [onSelect]);
+
+  useEffect(() => {
+    return () => {
+      if (tempFiles.length > 0) {
+        fetch('/api/media/clean', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ fileIds: tempFiles })
+        }).catch(err => {
+          console.error('临时文件清理失败:', err);
+        });
+      }
+    };
+  }, [tempFiles]);
+
+  const handleDelete = async (fileId: string, currentFiles: Array<{url: string; type: string}>) => {
+    try {
+      const response = await fetch(`/api/media/${fileId}`, { method: 'DELETE' });
+      if (!response.ok) throw new Error('删除失败');
+      
+      // 精确匹配文件ID
+      const updatedFiles = currentFiles.filter(file => {
+        const fileUrlId = file.url.split('/').pop();
+        return fileUrlId !== fileId;
+      });
+      
+      // 强制状态更新
+      setTempFiles(prev => prev.filter(id => id !== fileId));
+      setPreviewFiles([...updatedFiles]);
+      onSelect([...updatedFiles]);
+    } catch (err) {
+      console.error('删除失败:', err);
+      // message.error('文件删除失败，请稍后重试');
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {

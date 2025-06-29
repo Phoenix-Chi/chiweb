@@ -336,9 +336,11 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
           <Form.Item label="多媒体内容">
             <MediaPicker 
               onSelect={(media) => {
-                form.setFieldsValue({
-                  media: [...(form.getFieldValue('media') || []), ...media]
-                });
+                const currentMedia = form.getFieldValue('media') || [];
+                const newMedia = [...currentMedia, ...media];
+                form.setFieldsValue({ media: newMedia });
+                // 即时更新editNode的media状态
+                setEditNode(prev => ({ ...prev, media: newMedia }));
               }}
             />
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16 }}>

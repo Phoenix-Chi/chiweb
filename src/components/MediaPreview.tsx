@@ -1,5 +1,6 @@
 'use client';
 
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button, Image, Row, Col } from 'antd';
 import { DeleteOutlined } from '@ant-design/icons';
 
@@ -18,7 +19,33 @@ export default function MediaPreview({
   media: MediaItem | MediaItem[];
   onRemove?: (index?: number) => void;
 }) {
-  const mediaList = Array.isArray(media) ? media : [media];
+  const [localMedia, setLocalMedia] = useState<MediaItem[]>([]);
+  
+  useEffect(() => {
+    setLocalMedia(Array.isArray(media) ? [...media] : [media]);
+  }, [media]);
+
+  const handleRemove = useCallback(async (index: number) => {
+    try {
+      // 先更新本地状态实现即时反馈
+      setLocalMedia(prev => {
+        const newMedia = [...prev];
+        newMedia.splice(index, 1);
+        return newMedia;
+      });
+      
+      // 通知父组件
+      if (onRemove) {
+        await onRemove(index);
+      }
+    } catch (err) {
+      // 恢复状态
+      setLocalMedia(Array.isArray(media) ? [...media] : [media]);
+      console.error('删除失败:', err);
+    }
+  }, [media, onRemove]);
+
+  const mediaList = localMedia;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {mediaList.map((item, index) => (
@@ -105,7 +132,11 @@ export default function MediaPreview({
               type="text"
               danger
               icon={<DeleteOutlined />}
-              onClick={() => onRemove(index)}
+              onClick={async (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                await handleRemove(index);
+              }}
               style={{
                 position: 'absolute',
                 top: '8px',
