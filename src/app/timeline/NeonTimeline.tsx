@@ -167,26 +167,71 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
         tag: values.tag,
         media: form.getFieldValue('media') || []
       };
-      if (editNode && (editNode.id || editNode._id)) {
-        // 编辑已有节点
-        const res = await fetch(`/api/nodes?id=${editNode.id || editNode._id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        if (!res.ok) throw new Error('保存失败');
-        message.success('节点已更新');
-      } else {
-        // 新增节点
-        const res = await fetch('/api/nodes', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        if (!res.ok) throw new Error('保存失败');
-        const data = await res.json();
-        newNodeId = data._id || data.id || data.node?._id || data.node?.id;
-        message.success('节点已保存');
+      try {
+        if (editNode && (editNode.id || editNode._id)) {
+          console.log('正在更新节点:', editNode.id || editNode._id);
+          const res = await fetch(`/api/nodes/${editNode.id || editNode._id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          
+          // 检查响应内容类型
+          const contentType = res.headers.get('content-type');
+          if (!contentType || !contentType.includes('application/json')) {
+            const text = await res.text();
+            console.error('服务器返回非JSON响应:', text);
+            throw new Error('服务器返回了无效的响应格式');
+          }
+
+          const responseData = await res.json();
+          if (!res.ok) {
+            console.error('更新节点失败:', responseData);
+            throw new Error(responseData.message || '保存失败');
+          }
+          console.log('节点更新成功:', responseData);
+          message.success('节点已更新');
+        } else {
+          console.log('正在创建新节点');
+          const res = await fetch('/api/nodes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          // // 检查响应内容类型
+          // const contentType = res.headers.get('content-type');
+          // if (!contentType || !contentType.includes('application/json')) {
+          //   const text = await res.text();
+          //   console.error('服务器返回非JSON响应:', text);
+          //   throw new Error('服务器返回了无效的响应格式');
+          // }
+
+          const responseData = await res.json();
+          if (!res.ok) {
+            console.error('创建节点失败:', responseData);
+            throw new Error(responseData.message || '保存失败');
+          }
+          console.log('节点创建成功:', responseData);
+          newNodeId = responseData._id || responseData.id || responseData.node?._id || responseData.node?.id;
+          message.success('节点已保存');
+        }
+
+        // // 获取最新数据
+        // console.log('获取最新节点数据...');
+        // const latestNodes = await fetchNodes();
+        
+        // // 更新视图
+        // if (newNodeId && latestNodes.length > 0) {
+        //   const idx = latestNodes.findIndex((n: { _id?: string; id?: string }) => n._id === newNodeId || n.id === newNodeId);
+        //   if (idx >= 0) {
+        //     const targetOffset = idx * NODE_GAP - (VIEWPORT_CENTER - lineStart.x) / Math.cos((TIMELINE_ANGLE * Math.PI) / 180);
+        //     setOffset(targetOffset);
+        //   }
+        // }
+      } catch (error) {
+        console.error('保存节点过程中出错:', error);
+        throw error; // 重新抛出错误以便外层catch块处理
       }
       setShowEditModal(false);
       setEditNode(null);
@@ -224,7 +269,7 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
     if (!deleteItem) return;
     setLoading(true);
     try {
-      await fetch(`/api/nodes?id=${deleteItem._id || deleteItem.id}`, { method: 'DELETE' });
+      await fetch(`/api/nodes/${deleteItem._id || deleteItem.id}`, { method: 'DELETE' });
       message.success('节点已删除');
       await fetchNodes();
     } catch (err) {
