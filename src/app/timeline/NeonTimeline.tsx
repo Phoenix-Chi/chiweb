@@ -10,10 +10,10 @@ const NEON_PINK = '#ff3ec8';
 const NEON_PURPLE = '#ff5fff';
 const NEON_BG = 'linear-gradient(10deg, #1a0033 0%,rgb(188, 151, 226) 100%)';
 
-const TIMELINE_ANGLE = -15; // 斜向角度
+const TIMELINE_ANGLE = -18; // 斜向角度
 const NODE_BASE_SIZE = 90; // 节点基准大小
-const NODE_MIN_SCALE = 0.4; // 最小缩放
-const NODE_MAX_SCALE = 1.5; // 最大缩放
+const NODE_MIN_SCALE = 0.6; // 最小缩放
+// const NODE_MAX_SCALE = 1.5; // 最大缩放
 const VIEWPORT_CENTER = 700; // 视口中心点(px)
 const NODE_GAP = 300; // 节点间距（沿主线方向）
 const VISIBLE_NODE_COUNT = 15; // 渲染视口附近的节点数
@@ -79,7 +79,7 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
   };
 
   // 斜向主线的起点
-  const lineStart = { x: 0, y: 550 };
+  const lineStart = { x: 0, y: 650 };
   // 无限主线，不设终点
   const lineLength = 99999;
   const lineEnd = {
@@ -108,7 +108,8 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
             title: item.title,
             content: item.content,
             date: item.date ? dayjs(item.date) : dayjs(),
-            tag: item.tag
+            tag: item.tag,
+            level: item.level || 1.0
           });
         }, 0);
       } else {
@@ -116,17 +117,6 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
       }
     }, 0);
   };
-
-  // 双击节点触发删除
-  // const handleNodeDoubleClick = (nodeIdx: number) => {
-  //   if (!isAdmin) return;
-  //   setShowEditModal(false);
-  //   setDeleteNodeIdx(null);
-  //   // 居中主线
-  //   const targetOffset = nodeIdx * NODE_GAP - (VIEWPORT_CENTER - lineStart.x) / Math.cos((TIMELINE_ANGLE * Math.PI) / 180);
-  //   setOffset(targetOffset);
-  //   setTimeout(() => setDeleteNodeIdx(nodeIdx), 50); // 延迟 50ms，确保 useEffect 能捕获变化
-  // };
 
   // 新增节点按钮点击
   const handleAddNode = () => {
@@ -160,12 +150,13 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
       setLoading(true);
       let newNodeId: string | number | undefined = undefined;
       // 构造后端所需字段，统一用 date 字段
-      const payload = {
-        title: values.title,
-        content: values.content,
-        date: values.date ? values.date.format('YYYY-MM-DD') : undefined,
-        tag: values.tag,
-        media: form.getFieldValue('media') || []
+          const payload = {
+            title: values.title,
+            content: values.content,
+            date: values.date ? values.date.format('YYYY-MM-DD') : undefined,
+            tag: values.tag,
+            level: values.level || 1.0,
+            media: form.getFieldValue('media') || []
       };
       try {
         if (editNode && (editNode.id || editNode._id)) {
@@ -358,11 +349,12 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
         <Form
           form={form}
           layout="vertical"
-          initialValues={{
+        initialValues={{
             title: editNode?.title,
             content: editNode?.content,
             date: editNode?.date ? dayjs(editNode.date) : dayjs(),
             tag: editNode?.tag,
+            level: editNode?.level || 1.0,
             media: editNode?.media || []
           }}
         >
@@ -377,6 +369,9 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
           </Form.Item>
           <Form.Item name="tag" label="标签" rules={[{ required: true, message: '请输入标签' }]}> 
           <Input maxLength={16} />
+          </Form.Item>
+          <Form.Item name="level" label="节点级别">
+            <Input type="number" min={1.0} step={0.1} />
           </Form.Item>
           <Form.Item label="多媒体内容">
             <MediaPicker 
@@ -446,20 +441,27 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
           // 计算三角中心点坐标
           const x = lineStart.x + pos * Math.cos((TIMELINE_ANGLE * Math.PI) / 180);
           const y = lineStart.y + pos * Math.sin((TIMELINE_ANGLE * Math.PI) / 180);
-          // 计算缩放：距离视口中心越近越大
+          // 计算基础缩放：距离视口中心越近越大
           const dist = Math.abs(x - VIEWPORT_CENTER);
-          const scale = Math.max(NODE_MIN_SCALE, NODE_MAX_SCALE - dist / 300);
-          const opacity = Math.max(0.2, 1 - dist / 900);
-          // 三角颜色
-          const TRIANGLE_COLOR = 'rgb(246,209,251)';
-          // 圆圈颜色
-          const CIRCLE_COLOR = 'rgb(245, 192, 212)';
+          const baseScale = Math.max(NODE_MIN_SCALE, 950/(dist+600));
+          // 应用级别缩放公式：(级别数值-1)/3+1
+          const levelScale = ((item.level || 1.0) - 1) / 3 + 1;
+          const scale = baseScale * levelScale;
+          
+          // 根据级别调整透明度 (级别越高越不透明)
+          const baseOpacity = Math.max(0.2, 1 - dist / 900);
+          const opacity = baseOpacity * Math.min(1, 0.7 + (item.level || 1.0) * 0.1);
+          
+          // 根据级别调整颜色鲜艳度
+          const colorIntensity = Math.min(1, 0.6 + (item.level || 1.0) * 0.2);
+          const TRIANGLE_COLOR = `rgb(246,${209 * colorIntensity},${251 * colorIntensity})`;
+          const CIRCLE_COLOR = `rgb(245, ${192 * colorIntensity}, ${212 * colorIntensity})`;
           return (
             <div
               key={nodeIdx}
               style={{
                 position: 'absolute',
-                left: x - NODE_BASE_SIZE / 2 * scale,
+                left: x - NODE_BASE_SIZE / 2 * scale, 
                 top: y - NODE_BASE_SIZE / 2 * scale*1.2,
                 width: NODE_BASE_SIZE * scale,
                 height: NODE_BASE_SIZE * scale,
@@ -475,7 +477,7 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
                 clickTimer.current = setTimeout(() => {
                   handleNodeClick(nodeIdx);
                   clickTimer.current = null;
-                }, 200); // 200ms 内未双击则视为单击
+                }, 175); // 175ms 内未双击则视为单击
               }}
               onDoubleClick={e => {
                 e.stopPropagation();
@@ -492,8 +494,8 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
               <div style={{
                 position: 'absolute',
                 bottom: '110%',
-                left: '50%',
-                transform: 'translateX(-50%) rotate(3deg)',
+                left: '60%',
+                transform: 'translateX(-50%) rotate(9deg)',
                 color: '#fff',
                 fontWeight: 700,
                 fontSize: 16 * scale,
@@ -503,7 +505,7 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
               }}>{item.date ? dayjs(item.date).format('YYYY-MM-DD') : ''}</div>
               <svg width="100%" height="100%" viewBox="0 0 60 60" style={{ filter: 'drop-shadow(0 0 24px rgb(246,209,251))' }}>
                 <polygon
-                  points="30,8 56,52 6,48"
+                  points="34,8 55,56 6,48"
                   fill="rgba(246,209,251,0.12)"
                   stroke={TRIANGLE_COLOR}
                   strokeWidth="5"
@@ -515,8 +517,8 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
               <div style={{
                 position: 'absolute',
                 top: '110%',
-                left: '50%',
-                transform: 'translateX(-50%) rotate(5deg)',
+                left: '45%',
+                transform: 'translateX(-50%) rotate(9deg)',
                 color: '#fff',
                 fontWeight: 700,
                 fontSize: 16 * scale,

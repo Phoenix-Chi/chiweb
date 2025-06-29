@@ -15,6 +15,7 @@ export interface INode extends Document {
   content: string;
   date: Date;
   tag: string;
+  level: number;
   media?: IMedia[];
   extra?: Record<string, unknown>;
 }
@@ -24,6 +25,7 @@ const NodeSchema: Schema = new Schema({
   content: { type: String, required: true },
   date: { type: Date, required: true },
   tag: { type: String },
+  level: { type: Number, default: 1.0, min: 1.0 },
   media: [{
     url: { type: String, required: true },
     type: { type: String, enum: ['image', 'video', 'audio'], required: true },
