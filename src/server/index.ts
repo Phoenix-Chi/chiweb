@@ -4,6 +4,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 
 import nodeRouter from './routes/node.ts';
+import mediaRouter from './routes/media.ts';
 
 // 环境变量配置
 dotenv.config();
@@ -16,6 +17,8 @@ app.use(express.json());
 
 // 节点相关 API 路由
 app.use('/api/nodes', nodeRouter);
+// 媒体上传 API 路由
+app.use('/api/media', mediaRouter);
 
 // 连接 MongoDB
 const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017';

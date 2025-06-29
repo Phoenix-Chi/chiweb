@@ -2,6 +2,8 @@ import React, { useRef, useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import Image from 'next/image';
 import { Modal as AntdModal, Form, Input, DatePicker, Button, message } from 'antd';
+import MediaPicker from '../../components/MediaPicker';
+import MediaPreview from '../../components/MediaPreview';
 import dayjs from 'dayjs';
 
 const NEON_PINK = '#ff3ec8';
@@ -35,7 +37,7 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
   // 拉取节点数据，返回节点数组
   const fetchNodes = async () => {
     try {
-      const res = await fetch('/api/node');
+      const res = await fetch('/api/nodes');
       if (!res.ok) throw new Error('获取节点失败');
       // 兼容后端返回数组或对象
       const data = await res.json();
@@ -163,11 +165,11 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
         content: values.content,
         date: values.date ? values.date.format('YYYY-MM-DD') : undefined,
         tag: values.tag,
-        media: editNode && (editNode.id || editNode._id) ? (editNode.media || []) : [],
+        media: form.getFieldValue('media') || []
       };
       if (editNode && (editNode.id || editNode._id)) {
         // 编辑已有节点
-        const res = await fetch(`/api/node/${editNode.id || editNode._id}`, {
+        const res = await fetch(`/api/nodes?id=${editNode.id || editNode._id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -176,7 +178,7 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
         message.success('节点已更新');
       } else {
         // 新增节点
-        const res = await fetch('/api/node', {
+        const res = await fetch('/api/nodes', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -222,7 +224,7 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
     if (!deleteItem) return;
     setLoading(true);
     try {
-      await fetch(`/api/node/${deleteItem._id || deleteItem.id}`, { method: 'DELETE' });
+      await fetch(`/api/nodes?id=${deleteItem._id || deleteItem.id}`, { method: 'DELETE' });
       message.success('节点已删除');
       await fetchNodes();
     } catch (err) {
@@ -315,7 +317,8 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
             title: editNode?.title,
             content: editNode?.content,
             date: editNode?.date ? dayjs(editNode.date) : dayjs(),
-            tag: editNode?.tag
+            tag: editNode?.tag,
+            media: editNode?.media || []
           }}
         >
           <Form.Item name="title" label="标题" rules={[{ required: true, message: '请输入标题' }]}> 
@@ -329,6 +332,29 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
           </Form.Item>
           <Form.Item name="tag" label="标签" rules={[{ required: true, message: '请输入标签' }]}> 
           <Input maxLength={16} />
+          </Form.Item>
+          <Form.Item label="多媒体内容">
+            <MediaPicker 
+              onSelect={(media) => {
+                form.setFieldsValue({
+                  media: [...(form.getFieldValue('media') || []), ...media]
+                });
+              }}
+            />
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
+              {(form.getFieldValue('media') || []).map((item: any, index: number) => (
+                <MediaPreview
+                  key={index}
+                  media={item}
+                  onRemove={() => {
+                    const media = form.getFieldValue('media') || [];
+                    form.setFieldsValue({
+                      media: media.filter((_: any, i: number) => i !== index)
+                    });
+                  }}
+                />
+              ))}
+            </div>
           </Form.Item>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
             <Button onClick={handleCancelEdit}>取消</Button>
