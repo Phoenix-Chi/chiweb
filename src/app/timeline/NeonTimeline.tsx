@@ -494,8 +494,8 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
               <div style={{
                 position: 'absolute',
                 bottom: '110%',
-                left: '60%',
-                transform: 'translateX(-50%) rotate(9deg)',
+                left: '56%',
+                transform: 'translateX(-50%) rotate(7deg)',
                 color: '#fff',
                 fontWeight: 700,
                 fontSize: 16 * scale,
@@ -505,7 +505,7 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
               }}>{item.date ? dayjs(item.date).format('YYYY-MM-DD') : ''}</div>
               <svg width="100%" height="100%" viewBox="0 0 60 60" style={{ filter: 'drop-shadow(0 0 24px rgb(246,209,251))' }}>
                 <polygon
-                  points="34,8 55,56 6,48"
+                  points="32,5 55,56 6,50"
                   fill="rgba(246,209,251,0.12)"
                   stroke={TRIANGLE_COLOR}
                   strokeWidth="5"
@@ -518,7 +518,7 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
                 position: 'absolute',
                 top: '110%',
                 left: '45%',
-                transform: 'translateX(-50%) rotate(9deg)',
+                transform: 'translateX(-50%) rotate(7deg)',
                 color: '#fff',
                 fontWeight: 700,
                 fontSize: 16 * scale,
