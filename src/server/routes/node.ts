@@ -1,5 +1,6 @@
 import express from 'express';
 import Node from '../models/Node';
+import { deleteMediaFiles } from '../utils/deleteMediaFiles';
 
 const router = express.Router();
 
@@ -34,6 +35,10 @@ router.put('/:id', async (req, res) => {
 
 // 删除节点
 router.delete('/:id', async (req, res) => {
+  const node = await Node.findById(req.params.id);
+  if (node && node.media) {
+    await deleteMediaFiles(node.media);
+  }
   await Node.findByIdAndDelete(req.params.id);
   res.status(204).end();
 });

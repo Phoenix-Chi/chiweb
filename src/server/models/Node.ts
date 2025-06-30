@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
-interface IMedia {
+export interface IMedia {
   url: string;
   type: 'image' | 'video' | 'audio';
   thumbnail?: string;
