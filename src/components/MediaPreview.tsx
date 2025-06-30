@@ -47,7 +47,7 @@ export default function MediaPreview({
 
   const mediaList = localMedia;
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <div style={{ width: '100%', display: 'flex', gap: '16px', justifyContent: 'center' }}>
       {mediaList.map((item, index) => (
         <div key={index} style={{
           position: 'relative',
@@ -55,10 +55,10 @@ export default function MediaPreview({
           overflow: 'hidden',
           boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
           transition: 'all 0.3s ease',
-          height: '200px',
-          // marginLeft: '60px',
+          height: '90%',
           display: 'flex',
           justifyContent: 'center',
+          alignItems: 'center',
           backgroundColor: item.type === 'audio' ? '#f0f0f0' : 'transparent'
         }}>
           {item.type === 'image' && (
@@ -87,21 +87,29 @@ export default function MediaPreview({
 
           {item.type === 'audio' && (
             <div style={{
-              height: '100%',
-              width: '100%',
+              // width: '50%',
+              // height: '50%',
+              padding: '24px',
               display: 'flex',
-              justifyContent: 'center',
-              // padding: '0 20px'
             }}>
-              <audio
-                controls
-                src={item.url}
-                style={{
-                  width: '100%',
-                  maxWidth: '400px',
-                    objectFit: 'contain'
-                }}
-              />
+              <div style={{ 
+                width: '100%',
+                minHeight: '24px',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}>
+                <audio
+                  controls
+                  src={item.url}
+                  style={{
+                    width: '100%',
+                    minWidth: '300px',
+                    maxWidth: '500px',
+                    height: '24px'
+                  }}
+                />
+              </div>
             </div>
           )}
 

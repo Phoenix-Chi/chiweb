@@ -22,6 +22,9 @@
 npm install
 npm run dev
 ```
+```bash
+npm run server
+```
 
 访问 [http://localhost:3000](http://localhost:3000) 查看效果。
 
