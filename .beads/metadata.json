@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "server",
+  "dolt_database": "chiweb",
+  "project_id": "1f2a9fe9-bbac-4864-b069-6b87c1358182"
+}
