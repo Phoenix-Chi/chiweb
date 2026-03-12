@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Button, Image, Row, Col } from 'antd';
+import { Button, Image } from 'antd';
 import { DeleteOutlined } from '@ant-design/icons';
 
 interface MediaItem {

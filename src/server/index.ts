@@ -3,8 +3,8 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
 
-import nodeRouter from './routes/node.ts';
-import mediaRouter from './routes/media.ts';
+import nodeRouter from './routes/node';
+import mediaRouter from './routes/media';
 
 // 环境变量配置
 dotenv.config();

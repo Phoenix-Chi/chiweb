@@ -7,6 +7,15 @@ import { v4 as uuidv4 } from 'uuid';
 
 const router = express.Router();
 
+interface UploadResult {
+  url: string;
+  type: string;
+  size: number;
+  width?: number;
+  height?: number;
+  thumbnail?: string;
+}
+
 // 确保上传目录存在
 const uploadDir = path.join(process.cwd(), 'public', 'uploads');
 if (!fs.existsSync(uploadDir)) {
@@ -38,13 +47,14 @@ const upload = multer({
 // 媒体上传端点
 router.post('/', upload.single('file'), async (req, res) => {
   if (!req.file) {
-    return res.status(400).json({ error: '没有上传文件' });
+    res.status(400).json({ error: '没有上传文件' });
+    return;
   }
 
   const file = req.file;
   const filePath = path.join(uploadDir, file.filename);
   const publicUrl = `/uploads/${file.filename}`;
-  let result: any = {
+  let result: UploadResult = {
     url: publicUrl,
     type: file.mimetype.split('/')[0],
     size: file.size
@@ -80,6 +90,7 @@ router.post('/', upload.single('file'), async (req, res) => {
     console.error('文件处理失败:', error);
     fs.unlinkSync(filePath); // 删除上传的文件
     res.status(500).json({ error: '文件处理失败' });
+    return;
   }
 });
 

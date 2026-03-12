@@ -1,20 +1,28 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { Button, Card, Row, Col } from 'antd';
+import { Card, Row, Col } from 'antd';
 import MediaPicker from './MediaPicker';
 import MediaPreview from './MediaPreview';
+
+type MediaType = 'image' | 'video' | 'audio';
+interface MediaItem {
+  fileId?: string;
+  url: string;
+  type: MediaType;
+  thumbnail?: string;
+}
 
 export default function RichContentEditor({
   initialContent = [],
   onChange
 }: {
-  initialContent?: Array<{ url: string; type: string }>;
-  onChange: (content: Array<{ url: string; type: string }>) => void;
+  initialContent?: MediaItem[];
+  onChange: (content: MediaItem[]) => void;
 }) {
   const [content, setContent] = useState(initialContent);
 
-  const handleAddMedia = useCallback((newMedia: Array<{ url: string; type: string }>) => {
+  const handleAddMedia = useCallback((newMedia: MediaItem[]) => {
     const updatedContent = [...content, ...newMedia];
     setContent(updatedContent);
     onChange(updatedContent);

@@ -1,0 +1,46 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Node {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  date      DateTime
+  tag       String?
+  level     Float    @default(1.0)
+  media     Media[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Media {
+  id           String    @id @default(cuid())
+  nodeId       String?
+  node         Node?     @relation(fields: [nodeId], references: [id], onDelete: SetNull)
+  type         MediaType
+  url          String
+  thumbnailUrl String?
+  filename     String
+  size         Int
+  width        Int?
+  height       Int?
+  duration     Float?
+  isTemp       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([nodeId])
+  @@index([isTemp])
+}
+
+enum MediaType {
+  image
+  video
+  audio
+}

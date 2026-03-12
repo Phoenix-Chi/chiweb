@@ -1,10 +1,29 @@
 import React, { useRef, useState, useEffect } from 'react';
-import ReactDOM from 'react-dom';
 import Image from 'next/image';
 import { Modal as AntdModal, Form, Input, DatePicker, Button, message } from 'antd';
 import MediaPicker from '../../components/MediaPicker';
 import MediaPreview from '../../components/MediaPreview';
 import dayjs from 'dayjs';
+
+interface NodeMedia {
+  fileId?: string;
+  url: string;
+  type: 'image' | 'video' | 'audio';
+  thumbnail?: string;
+  size?: number;
+  width?: number;
+  height?: number;
+}
+
+interface TimelineNode {
+  id?: string;
+  title: string;
+  content: string;
+  date: string;
+  tag?: string | null;
+  level?: number;
+  media: NodeMedia[];
+}
 
 const NEON_PINK = '#ff3ec8';
 const NEON_PURPLE = '#ff5fff';
@@ -23,26 +42,25 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
   const [dragging, setDragging] = useState(false);
   const [selectedNode, setSelectedNode] = useState<number | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editNode, setEditNode] = useState<any>(null);
+  const [editNode, setEditNode] = useState<TimelineNode | null>(null);
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [editMode, setEditMode] = useState(false); // 是否处于编辑节点模式
-  const [items, setItems] = useState<any[]>([]); // 节点数据动态获取
-  const [deleteNodeIdx, setDeleteNodeIdx] = useState<number | null>(null);
+  const [items, setItems] = useState<TimelineNode[]>([]); // 节点数据动态获取
   const dragStart = useRef(0);
   const offsetStart = useRef(0);
   // 节点点击/双击互斥定时器
   const clickTimer = useRef<NodeJS.Timeout | null>(null);
 
   // 拉取节点数据，返回节点数组
-  const fetchNodes = async () => {
+  const fetchNodes = async (): Promise<TimelineNode[]> => {
     try {
       const res = await fetch('/api/nodes');
       if (!res.ok) throw new Error('获取节点失败');
       // 兼容后端返回数组或对象
       const data = await res.json();
       // 兼容 /api/node 返回数组 或 {nodes: Node[]} 两种格式
-      const nodes = Array.isArray(data) ? data : (data.nodes || []);
+      const nodes = (Array.isArray(data) ? data : (data.nodes || [])) as TimelineNode[];
       setItems(nodes);
       return nodes;
     } catch {
@@ -94,7 +112,6 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
   // 点击节点时自动居中并显示详情或编辑
   const handleNodeClick = (nodeIdx: number) => {
     setShowEditModal(false);
-    setDeleteNodeIdx(null);
     setTimeout(() => {
       const targetOffset = nodeIdx * NODE_GAP - (VIEWPORT_CENTER - lineStart.x) / Math.cos((TIMELINE_ANGLE * Math.PI) / 180);
       setOffset(targetOffset);
@@ -159,9 +176,9 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
             media: form.getFieldValue('media') || []
       };
       try {
-        if (editNode && (editNode.id || editNode._id)) {
-          console.log('正在更新节点:', editNode.id || editNode._id);
-          const res = await fetch(`/api/nodes/${editNode.id || editNode._id}`, {
+        if (editNode?.id) {
+          console.log('正在更新节点:', editNode.id);
+          const res = await fetch(`/api/nodes/${editNode.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -204,7 +221,7 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
             throw new Error(responseData.message || '保存失败');
           }
           console.log('节点创建成功:', responseData);
-          newNodeId = responseData._id || responseData.id || responseData.node?._id || responseData.node?.id;
+          newNodeId = responseData.id || responseData.node?.id;
           message.success('节点已保存');
         }
 
@@ -231,7 +248,7 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
       const latestNodes = await fetchNodes();
       // 新增节点后自动居中显示
       if (newNodeId && latestNodes.length > 0) {
-        const idx = latestNodes.findIndex((n: { _id?: string; id?: string }) => n._id === newNodeId || n.id === newNodeId);
+        const idx = latestNodes.findIndex((n) => n.id === newNodeId);
         if (idx >= 0) {
           const targetOffset = idx * NODE_GAP - (VIEWPORT_CENTER - lineStart.x) / Math.cos((TIMELINE_ANGLE * Math.PI) / 180);
           setOffset(targetOffset);
@@ -253,14 +270,14 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
 
   // 删除确认状态
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [deleteItem, setDeleteItem] = useState<any>(null);
+  const [deleteItem, setDeleteItem] = useState<TimelineNode | null>(null);
 
   // 处理删除确认
   const handleDeleteConfirm = async () => {
     if (!deleteItem) return;
     setLoading(true);
     try {
-      await fetch(`/api/nodes/${deleteItem._id || deleteItem.id}`, { method: 'DELETE' });
+      await fetch(`/api/nodes/${deleteItem.id}`, { method: 'DELETE' });
       message.success('节点已删除');
       await fetchNodes();
     } catch (err) {
@@ -278,7 +295,6 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
   const handleNodeDoubleClick = (nodeIdx: number) => {
     if (!isAdmin) return;
     setShowEditModal(false);
-    setDeleteNodeIdx(null);
     // 居中主线
     const targetOffset = nodeIdx * NODE_GAP - (VIEWPORT_CENTER - lineStart.x) / Math.cos((TIMELINE_ANGLE * Math.PI) / 180);
     setOffset(targetOffset);
@@ -340,7 +356,7 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
       )}
       {/* 新增/编辑节点Modal */}
       <AntdModal
-        title={editNode && (editNode.id || editNode._id) ? '编辑节点' : '新增节点'}
+        title={editNode?.id ? '编辑节点' : '新增节点'}
         open={showEditModal}
         onCancel={handleCancelEdit}
         footer={null}
@@ -380,18 +396,21 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
                 const newMedia = [...currentMedia, ...media];
                 form.setFieldsValue({ media: newMedia });
                 // 即时更新editNode的media状态
-                setEditNode(prev => ({ ...prev, media: newMedia }));
+                setEditNode((prev) => {
+                  if (!prev) return prev;
+                  return { ...prev, media: newMedia };
+                });
               }}
             />
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
-              {(form.getFieldValue('media') || []).map((item: any, index: number) => (
+              {((form.getFieldValue('media') || []) as NodeMedia[]).map((item, index: number) => (
                 <MediaPreview
                   key={index}
                   media={item}
                   onRemove={() => {
-                    const media = form.getFieldValue('media') || [];
+                    const media = (form.getFieldValue('media') || []) as NodeMedia[];
                     form.setFieldsValue({
-                      media: media.filter((_: any, i: number) => i !== index)
+                      media: media.filter((_, i: number) => i !== index)
                     });
                   }}
                 />

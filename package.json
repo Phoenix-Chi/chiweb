@@ -8,9 +8,19 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "format": "prettier --check .",
+    "test": "node -e \"console.log('No tests configured yet')\"",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio",
+    "db:migrate-mongo": "tsx ./scripts/migrate-mongo-to-postgres.ts",
     "server": "tsx ./src/server/index.ts"
   },
   "dependencies": {
+    "@prisma/client": "^6.19.0",
+    "@trpc/client": "^11.7.1",
+    "@trpc/server": "^11.7.1",
     "@ant-design/cssinjs": "^1.23.0",
     "@ant-design/nextjs-registry": "^1.0.2",
     "@ffmpeg/core": "^0.12.10",
@@ -30,7 +40,9 @@
     "react-calendar-timeline": "^0.30.0-beta.1",
     "react-dom": "^18.3.1",
     "sharp": "^0.34.2",
-    "uuid": "^11.1.0"
+    "superjson": "^2.2.2",
+    "uuid": "^11.1.0",
+    "zod": "^4.1.8"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -43,6 +55,8 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.3.4",
+    "prettier": "^3.6.2",
+    "prisma": "^6.19.0",
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.3",

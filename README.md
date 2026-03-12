@@ -1,42 +1,48 @@
-# 个人成长记录型博客网站
+# chiweb
 
-本项目基于 Next.js (React + TypeScript)、Node.js (Express)、MongoDB、Ant Design、Sharp.js、FFmpeg，旨在打造高效、美观、易用且安全的个人成长记录平台。
+个人成长记录型博客（时间轴 + 多媒体 + 管理员模式）。
 
-## 主要功能
-- 横向时间轴主页，展示成就、习惯、里程碑等多类型节点
-- 多媒体内容管理（图片压缩、音视频转码）
-- 节点关键词搜索与跳转
-- 时间轴缩放与拖动交互
-- 管理员特殊登录机制与节点管理
-- 权限控制：仅管理员可增删改节点，普通用户仅浏览与搜索
+## 当前技术栈（重构后）
 
-## 技术栈
-- 前端：Next.js (React + TypeScript)、Ant Design
-- 后端：Node.js (Express)
-- 数据库：MongoDB
-- 多媒体处理：Sharp.js、FFmpeg
+- Frontend: Next.js 15 App Router, TypeScript strict, Tailwind CSS
+- API: tRPC + Zod（通过 Next Route Handler 挂载）
+- Data: Prisma + PostgreSQL
+- Media: 本地文件存储（`public/uploads`）+ `sharp` 图片缩略图
 
-## 快速开始
+## 目录说明
+
+- `src/app`：页面与 API Route Handlers
+- `src/server`：tRPC context/router/procedure
+- `src/lib/server`：服务端复用能力（Prisma、媒体存储）
+- `prisma`：数据库 schema
+- `scripts`：迁移与维护脚本
+
+## 启动与开发
 
 ```bash
 npm install
+npm run prisma:generate
 npm run dev
 ```
+
+## 质量门禁
+
 ```bash
-npm run server
+npm run type-check
+npm run lint
+npm run build
 ```
 
-访问 [http://localhost:3000](http://localhost:3000) 查看效果。
+## 数据迁移（Mongo -> PostgreSQL）
 
-## 目录结构
-- `src/app`：前端页面与入口
-- `src/pages/api`：API 路由（可扩展为后端服务）
-- `public/`：静态资源
+当前已提供迁移入口脚本，默认是 no-op 骨架（用于后续按环境补齐正式迁移逻辑）：
 
-## 部署
-- 前端推荐部署至 Vercel
-- 后端与数据库建议部署于云服务器
+```bash
+npm run db:migrate-mongo
+```
 
----
+## 关键环境变量
 
-> 本项目为学习与个人成长记录用途，欢迎交流与贡献。
+```env
+DATABASE_URL="postgresql://user:password@localhost:5432/chiweb"
+```

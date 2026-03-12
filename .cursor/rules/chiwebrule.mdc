@@ -4,7 +4,7 @@ alwaysApply: true
 ---
 
 ## 项目概述
-本项目是一个个人成长记录型博客网站，旨在打造一个高效、美观、易用且安全的个人成长记录平台。技术栈基于2026年AI原生架构设计。
+本项目是一个个人成长记录型博客网站。技术栈基于2026年AI原生架构设计。
 
 ## 核心原则
 
@@ -272,42 +272,7 @@ import Image from "next/image";
 
 
 ### 2. 语义搜索UI
-```tsx
-// components/blog/SemanticSearch.tsx
-"use client";
 
-import { useState } from "react";
-import { Input } from "@/components/ui/input";
-import { trpc } from "@/lib/client/trpc";
-
-export function SemanticSearch() {
-  const [query, setQuery] = useState("");
-  
-  const { data: results, isLoading } = trpc.search.semantic.useQuery(
-    { query },
-    { enabled: query.length > 3 }
-  );
-  
-  return (
-    <div className="space-y-4">
-      <Input
-        placeholder="用自然语言搜索文章..."
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-      />
-      
-      {isLoading && <div>搜索中...</div>}
-      
-      {results?.map(post => (
-        <div key={post.id}>
-          <h3>{post.title}</h3>
-          <p>相似度: {Math.round(post.similarity * 100)}%</p>
-        </div>
-      ))}
-    </div>
-  );
-}
-```
 
 ### 3. AI助手对话
 
