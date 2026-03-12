@@ -1,9 +1,11 @@
 import React, { useRef, useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Modal as AntdModal, Form, Input, DatePicker, Button, message } from 'antd';
 import MediaPicker from '../../components/MediaPicker';
 import MediaPreview from '../../components/MediaPreview';
 import dayjs from 'dayjs';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
 
 interface NodeMedia {
   fileId?: string;
@@ -25,6 +27,15 @@ interface TimelineNode {
   media: NodeMedia[];
 }
 
+interface DraftNodeForm {
+  title: string;
+  content: string;
+  date: string;
+  tag: string;
+  level: number;
+  media: NodeMedia[];
+}
+
 const NEON_PINK = '#ff3ec8';
 const NEON_PURPLE = '#ff5fff';
 const NEON_BG = 'linear-gradient(10deg, #1a0033 0%,rgb(188, 151, 226) 100%)';
@@ -43,10 +54,18 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
   const [selectedNode, setSelectedNode] = useState<number | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editNode, setEditNode] = useState<TimelineNode | null>(null);
-  const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [editMode, setEditMode] = useState(false); // 是否处于编辑节点模式
   const [items, setItems] = useState<TimelineNode[]>([]); // 节点数据动态获取
+  const [statusText, setStatusText] = useState('');
+  const [draftNode, setDraftNode] = useState<DraftNodeForm>({
+    title: '',
+    content: '',
+    date: dayjs().format('YYYY-MM-DD'),
+    tag: '',
+    level: 1,
+    media: [],
+  });
   const dragStart = useRef(0);
   const offsetStart = useRef(0);
   // 节点点击/双击互斥定时器
@@ -64,7 +83,7 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
       setItems(nodes);
       return nodes;
     } catch {
-      message.error('节点数据加载失败');
+      setStatusText('节点数据加载失败');
       return [];
     }
   };
@@ -120,15 +139,14 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
         const item = items[((nodeIdx % items.length) + items.length) % items.length];
         setEditNode({ ...item });
         setShowEditModal(true);
-        setTimeout(() => {
-          form.setFieldsValue({
-            title: item.title,
-            content: item.content,
-            date: item.date ? dayjs(item.date) : dayjs(),
-            tag: item.tag,
-            level: item.level || 1.0
-          });
-        }, 0);
+        setDraftNode({
+          title: item.title ?? '',
+          content: item.content ?? '',
+          date: item.date ? dayjs(item.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
+          tag: item.tag ?? '',
+          level: item.level ?? 1,
+          media: item.media ?? [],
+        });
       } else {
         setSelectedNode(nodeIdx);
       }
@@ -144,36 +162,39 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
       tag: '',
       media: []
     });
+    setDraftNode({
+      title: '',
+      content: '',
+      date: dayjs().format('YYYY-MM-DD'),
+      tag: '',
+      level: 1,
+      media: [],
+    });
     setShowEditModal(true);
     setEditMode(false); // 新增时关闭编辑模式
-    setTimeout(() => {
-      form.setFieldsValue({
-        title: '',
-        content: '',
-        date: dayjs(),
-        tag: ''
-      });
-    }, 0);
   };
   // 编辑节点按钮点击
   const handleEditMode = () => {
     setEditMode(true);
-    message.info('请点击要编辑的节点');
+    setStatusText('请点击要编辑的节点');
   };
   // 保存节点（新增/编辑）
   const handleSaveNode = async () => {
     try {
-      const values = await form.validateFields();
+      if (!draftNode.title.trim()) throw new Error('请输入标题');
+      if (!draftNode.content.trim()) throw new Error('请输入内容');
+      if (!draftNode.date) throw new Error('请选择时间');
+      if (!draftNode.tag.trim()) throw new Error('请输入标签');
       setLoading(true);
       let newNodeId: string | number | undefined = undefined;
       // 构造后端所需字段，统一用 date 字段
           const payload = {
-            title: values.title,
-            content: values.content,
-            date: values.date ? values.date.format('YYYY-MM-DD') : undefined,
-            tag: values.tag,
-            level: values.level || 1.0,
-            media: form.getFieldValue('media') || []
+            title: draftNode.title.trim(),
+            content: draftNode.content.trim(),
+            date: draftNode.date,
+            tag: draftNode.tag.trim(),
+            level: draftNode.level || 1.0,
+            media: draftNode.media || []
       };
       try {
         if (editNode?.id) {
@@ -198,7 +219,7 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
             throw new Error(responseData.message || '保存失败');
           }
           console.log('节点更新成功:', responseData);
-          message.success('节点已更新');
+          setStatusText('节点已更新');
         } else {
           console.log('正在创建新节点');
           const res = await fetch('/api/nodes', {
@@ -222,7 +243,7 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
           }
           console.log('节点创建成功:', responseData);
           newNodeId = responseData.id || responseData.node?.id;
-          message.success('节点已保存');
+          setStatusText('节点已保存');
         }
 
         // // 获取最新数据
@@ -256,7 +277,7 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '保存失败';
-      message.error(msg);
+      setStatusText(msg);
     } finally {
       setLoading(false);
     }
@@ -278,11 +299,11 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
     setLoading(true);
     try {
       await fetch(`/api/nodes/${deleteItem.id}`, { method: 'DELETE' });
-      message.success('节点已删除');
+      setStatusText('节点已删除');
       await fetchNodes();
     } catch (err) {
       console.error('删除节点失败:', err);
-      message.error('删除失败');
+      setStatusText('删除失败');
     } finally {
       setLoading(false);
       setShowDeleteConfirm(false);
@@ -306,6 +327,13 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
 
   return (
     <div style={{ minHeight: '100vh', background: NEON_BG, position: 'relative', overflow: 'hidden' }}>
+      {statusText && (
+        <div style={{ position: 'absolute', top: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 120 }}>
+          <Card className="border-fuchsia-400/40 bg-slate-900/85 px-4 py-2 text-xs text-white">
+            {statusText}
+          </Card>
+        </div>
+      )}
       {/* 删除确认Modal */}
       {showDeleteConfirm && deleteItem && (
         <div style={{
@@ -338,91 +366,108 @@ export default function NeonTimeline({ isAdmin = false }: { isAdmin?: boolean })
                   setShowDeleteConfirm(false);
                   setDeleteItem(null);
                 }}
-                style={{ background: '#7f5fff', border: 'none' }}
+                variant="secondary"
               >
                 取消
               </Button>
               <Button 
-                type="primary" 
-                danger 
-                loading={loading}
+                variant="danger"
+                disabled={loading}
                 onClick={handleDeleteConfirm}
               >
-                删除
+                {loading ? '删除中...' : '删除'}
               </Button>
             </div>
           </div>
         </div>
       )}
       {/* 新增/编辑节点Modal */}
-      <AntdModal
-        title={editNode?.id ? '编辑节点' : '新增节点'}
-        open={showEditModal}
-        onCancel={handleCancelEdit}
-        footer={null}
-        destroyOnHidden
-      >
-        <Form
-          form={form}
-          layout="vertical"
-        initialValues={{
-            title: editNode?.title,
-            content: editNode?.content,
-            date: editNode?.date ? dayjs(editNode.date) : dayjs(),
-            tag: editNode?.tag,
-            level: editNode?.level || 1.0,
-            media: editNode?.media || []
-          }}
-        >
-          <Form.Item name="title" label="标题" rules={[{ required: true, message: '请输入标题' }]}> 
-          <Input maxLength={32} />
-          </Form.Item>
-          <Form.Item name="content" label="内容" rules={[{ required: true, message: '请输入内容' }]}> 
-          <Input.TextArea rows={3} maxLength={200} />
-          </Form.Item>
-          <Form.Item name="date" label="时间" rules={[{ required: true, message: '请选择时间' }]}> 
-          <DatePicker style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item name="tag" label="标签" rules={[{ required: true, message: '请输入标签' }]}> 
-          <Input maxLength={16} />
-          </Form.Item>
-          <Form.Item name="level" label="节点级别">
-            <Input type="number" min={1.0} step={0.1} />
-          </Form.Item>
-          <Form.Item label="多媒体内容">
-            <MediaPicker 
-              onSelect={(media) => {
-                const currentMedia = form.getFieldValue('media') || [];
-                const newMedia = [...currentMedia, ...media];
-                form.setFieldsValue({ media: newMedia });
-                // 即时更新editNode的media状态
-                setEditNode((prev) => {
-                  if (!prev) return prev;
-                  return { ...prev, media: newMedia };
-                });
-              }}
-            />
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
-              {((form.getFieldValue('media') || []) as NodeMedia[]).map((item, index: number) => (
-                <MediaPreview
-                  key={index}
-                  media={item}
-                  onRemove={() => {
-                    const media = (form.getFieldValue('media') || []) as NodeMedia[];
-                    form.setFieldsValue({
-                      media: media.filter((_, i: number) => i !== index)
-                    });
+      {showEditModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 110, background: 'rgba(0,0,0,0.45)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <Card className="w-full max-w-2xl border-fuchsia-400/50 bg-slate-900/95 text-white">
+            <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 16 }}>{editNode?.id ? '编辑节点' : '新增节点'}</div>
+            <div style={{ display: 'grid', gap: 12 }}>
+              <label>
+                <div style={{ marginBottom: 6 }}>标题</div>
+                <Input
+                  maxLength={32}
+                  value={draftNode.title}
+                  onChange={(e) => setDraftNode((prev) => ({ ...prev, title: e.target.value }))}
+                />
+              </label>
+              <label>
+                <div style={{ marginBottom: 6 }}>内容</div>
+                <textarea
+                  value={draftNode.content}
+                  onChange={(e) => setDraftNode((prev) => ({ ...prev, content: e.target.value }))}
+                  maxLength={200}
+                  rows={4}
+                  style={{ width: '100%', borderRadius: 8, border: '1px solid #475569', background: 'rgba(15,23,42,0.85)', color: '#fff', padding: 10 }}
+                />
+              </label>
+              <label>
+                <div style={{ marginBottom: 6 }}>时间</div>
+                <Input
+                  type="date"
+                  value={draftNode.date}
+                  onChange={(e) => setDraftNode((prev) => ({ ...prev, date: e.target.value }))}
+                />
+              </label>
+              <label>
+                <div style={{ marginBottom: 6 }}>标签</div>
+                <Input
+                  maxLength={16}
+                  value={draftNode.tag}
+                  onChange={(e) => setDraftNode((prev) => ({ ...prev, tag: e.target.value }))}
+                />
+              </label>
+              <label>
+                <div style={{ marginBottom: 6 }}>节点级别</div>
+                <Input
+                  type="number"
+                  min={1}
+                  step={0.1}
+                  value={String(draftNode.level)}
+                  onChange={(e) =>
+                    setDraftNode((prev) => ({
+                      ...prev,
+                      level: Number(e.target.value || 1),
+                    }))
+                  }
+                />
+              </label>
+              <div>
+                <div style={{ marginBottom: 8 }}>多媒体内容</div>
+                <MediaPicker
+                  onSelect={(media) => {
+                    setDraftNode((prev) => ({ ...prev, media: [...prev.media, ...media] }));
                   }}
                 />
-              ))}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
+                  {draftNode.media.map((item, index) => (
+                    <MediaPreview
+                      key={`${item.fileId ?? item.url}-${index}`}
+                      media={item}
+                      onRemove={() => {
+                        setDraftNode((prev) => ({
+                          ...prev,
+                          media: prev.media.filter((_, i) => i !== index),
+                        }));
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 8 }}>
+                <Button variant="secondary" onClick={handleCancelEdit}>取消</Button>
+                <Button onClick={handleSaveNode} disabled={loading}>
+                  {loading ? '保存中...' : '保存'}
+                </Button>
+              </div>
             </div>
-          </Form.Item>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-            <Button onClick={handleCancelEdit}>取消</Button>
-            <Button type="primary" loading={loading} onClick={handleSaveNode}>保存</Button>
-          </div>
-        </Form>
-      </AntdModal>
+          </Card>
+        </div>
+      )}
       <div
         style={{ width: '100vw', height: 700, cursor: dragging ? 'grabbing' : 'grab', userSelect: 'none' }}
         onMouseDown={onDragStart}

@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Inter, Roboto_Mono } from "next/font/google";
 import "./globals.css";
 import React from "react";
-import { AntdRegistry } from "@ant-design/nextjs-registry";
 import MusicPlayer from "../components/MusicPlayer";
 
 const inter = Inter({
@@ -30,7 +29,7 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${robotoMono.variable} antialiased`}
       >
-        <AntdRegistry>{children}</AntdRegistry>
+        {children}
         <MusicPlayer />
       </body>
     </html>

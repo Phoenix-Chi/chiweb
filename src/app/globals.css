@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import 'react-calendar-timeline/dist/style.css';
 
 :root {
   --background: #ffffff;

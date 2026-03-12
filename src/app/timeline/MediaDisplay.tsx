@@ -1,4 +1,4 @@
-import { Image } from 'antd';
+import Image from 'next/image';
 
 interface Media {
   url: string;

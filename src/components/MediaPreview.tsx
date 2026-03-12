@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Button, Image } from 'antd';
-import { DeleteOutlined } from '@ant-design/icons';
+import Image from 'next/image';
+import { Button } from '@/components/ui/button';
 
 interface MediaItem {
   url: string;
@@ -71,15 +71,13 @@ export default function MediaPreview({
               <Image
                 src={item.thumbnail || item.url}
                 alt="Preview"
+                width={360}
+                height={240}
                 style={{
                   width: 'auto',
                   height: '100%',
                   maxWidth: '100%',
                   objectFit: 'contain'
-                }}
-                preview={{
-                  src: item.url,
-                  mask: null
                 }}
               />
             </div>
@@ -137,21 +135,16 @@ export default function MediaPreview({
 
           {onRemove && (
             <Button
-              type="text"
-              danger
-              icon={<DeleteOutlined />}
+              variant="danger"
               onClick={async (e) => {
                 e.stopPropagation();
                 e.preventDefault();
                 await handleRemove(index);
               }}
-              style={{
-                position: 'absolute',
-                top: '8px',
-                right: '8px',
-                zIndex: 1
-              }}
-            />
+              className="absolute right-2 top-2 z-[1] px-2 py-1 text-xs"
+            >
+              删除
+            </Button>
           )}
         </div>
       ))}

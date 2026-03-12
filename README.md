@@ -8,6 +8,7 @@
 - API: tRPC + Zod（通过 Next Route Handler 挂载）
 - Data: Prisma + PostgreSQL
 - Media: 本地文件存储（`public/uploads`）+ `sharp` 图片缩略图
+- Legacy backend: 旧 Express/Mongoose 运行路径已完全下线，且不保留旧数据库兼容程序
 
 ## 目录说明
 
@@ -15,7 +16,7 @@
 - `src/server`：tRPC context/router/procedure
 - `src/lib/server`：服务端复用能力（Prisma、媒体存储）
 - `prisma`：数据库 schema
-- `scripts`：迁移与维护脚本
+- `scripts`：维护脚本
 
 ## 启动与开发
 
@@ -33,13 +34,7 @@ npm run lint
 npm run build
 ```
 
-## 数据迁移（Mongo -> PostgreSQL）
-
-当前已提供迁移入口脚本，默认是 no-op 骨架（用于后续按环境补齐正式迁移逻辑）：
-
-```bash
-npm run db:migrate-mongo
-```
+下线与回滚细节见：`docs/下线变更清单与回滚指引.md`
 
 ## 关键环境变量
 

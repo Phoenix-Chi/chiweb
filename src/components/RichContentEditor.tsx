@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { Card, Row, Col } from 'antd';
 import MediaPicker from './MediaPicker';
 import MediaPreview from './MediaPreview';
+import { Card } from '@/components/ui/card';
 
 type MediaType = 'image' | 'video' | 'audio';
 interface MediaItem {
@@ -35,21 +35,18 @@ export default function RichContentEditor({
   }, [content, onChange]);
 
   return (
-    <Card title="富媒体内容编辑器">
-      <Row gutter={[16, 16]}>
-        <Col span={24}>
-          <MediaPicker onSelect={handleAddMedia} />
-        </Col>
-        
-        {content.map((media, index) => (
-          <Col key={index} xs={24} sm={12} md={8} lg={6}>
-            <MediaPreview 
-              media={media} 
-              onRemove={() => handleRemoveMedia(index)} 
-            />
-          </Col>
-        ))}
-      </Row>
+    <Card className="border-fuchsia-400/40 bg-slate-900/80 text-white">
+      <div className="mb-4 text-lg font-semibold">富媒体内容编辑器</div>
+      <div className="space-y-4">
+        <MediaPicker onSelect={handleAddMedia} />
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {content.map((media, index) => (
+            <div key={index}>
+              <MediaPreview media={media} onRemove={() => handleRemoveMedia(index)} />
+            </div>
+          ))}
+        </div>
+      </div>
     </Card>
   );
 }
